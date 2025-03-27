@@ -6,7 +6,7 @@
 # and take frames a jpeg. 
 # 
 # As of right now, a flask server is created to be able to moniter the
-# webcam feed.
+# webcam feed in the browser.
 
 # IP address of Ben's pi: 192.168.0.103
 import cv2
