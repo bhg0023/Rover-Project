@@ -1,3 +1,13 @@
+# Written By: Benjamin Goldberg
+# 2025
+#
+#
+# This code will open the webcam as a video capture device in opencv, 
+# and take frames a jpeg. 
+# 
+# As of right now, a flask server is created to be able to moniter the
+# webcam feed.
+
 # IP address of Ben's pi: 192.168.0.103
 import cv2
 from flask import Flask, Response
