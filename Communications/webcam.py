@@ -13,7 +13,7 @@ import cv2
 from flask import Flask, Response
 
 app = Flask(__name__)
-cam = cv2.VideoCapture(0,cv2.CAP_V4L2)
+cam = cv2.VideoCapture(0,cv2.CAP_V4L2)  #pipline set to CAP_V4L2 to avoid pipeline error
 
 
 def generate_frames():
