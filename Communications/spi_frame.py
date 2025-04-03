@@ -10,3 +10,4 @@ spi = spi.SpiDev()
 spi.open(bus, device)
 
 # SPI settings
+#testing
