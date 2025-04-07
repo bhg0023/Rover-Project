@@ -28,6 +28,7 @@ def generate_frames():
         return image
         # yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + image + b'\r\n')
     
+out = generate_frames()
 
 
 

@@ -8,25 +8,27 @@
 
 
 import webcam
-import cv2
 import subprocess
-
 
 cv2_out = webcam.generate_frames()
 
+if not cv2_out:
+    raise ValueError("Error: Byte stream from webcam.generate_frames() is empty!")
 
+print("Byte stream length:", len(cv2_out))  # Check the data lengths
 
 command = ['ffmpeg',
-            '-i', cv2_out,
-            '-f', 'image2',
-            '-r', '30', 
-            '-vcodec', 'libx264',
-            'out.mp4'
-           ]
+            '-f',
+            '-i', 'pipe:',
+            '-f', 'mjpeg',
+            '-c:v','mjpeg', 
+            'out.jpg'
+]
 
-proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-ffmpeg_out = proc.stdout
-print(ffmpeg_out)
+p = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+p.stdin.write(cv2_out)
+p.stdin.close()
 
 
 
