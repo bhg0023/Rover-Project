@@ -21,7 +21,6 @@ command = ['ffmpeg',
            '-an',
            '-framerate', '24',
             '-f', 'mjpeg',
-           
             '-i', 'pipe:0',
             '-vf', 'format=yuv420p',
             '-c:v','h264_v4l2m2m', 
