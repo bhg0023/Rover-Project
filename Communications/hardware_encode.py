@@ -1,7 +1,7 @@
 # Written By: Benjamin Goldberg
 #
 # This code will encode live video into H.264 making use
-# of the Pi's Hardware Encoder (h264_omx). 
+# of the Pi's Hardware Encoder (h264_v4l2m2m). 
 # force all streams down to 5Mb/s
 #
 # 
@@ -15,30 +15,41 @@ cv2_out = webcam.generate_frames()
 if not cv2_out:
     raise ValueError("Error: Byte stream from webcam.generate_frames() is empty!")
 
-print("Byte stream length:", len(cv2_out))  # Check the data lengths
+# print("Byte stream length:", len(cv2_out))  # Check the data lengths
 
 command = ['ffmpeg',
-            '-f',
-            '-i', 'pipe:',
+           '-an',
+           '-framerate', '24',
             '-f', 'mjpeg',
-            '-c:v','mjpeg', 
-            'out.jpg'
+           
+            '-i', 'pipe:0',
+            '-vf', 'format=yuv420p',
+            '-c:v','h264_v4l2m2m', 
+            '-max_muxing_queue_size', '1024',
+            '-f', 'h264',
+            'pipe:1'
 ]
 
 p = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-p.stdin.write(cv2_out)
-p.stdin.close()
+try:
+    # Process each frame and send it to FFmpeg
+    for cv2_out in webcam.generate_frames():
+        try:
+            p.stdin.write(cv2_out)  # Write each frame's byte data to ffmpeg's stdin
+            print("Sent a frame!")
+        except BrokenPipeError:
+            print("BrokenPipeError: FFmpeg process may have terminated early.")
+            break  # Exit the loop if ffmpeg terminates unexpectedly
+except:
+    print("other error")
+    p.stdin.close()
 
+out, err = p.communicate()
+print("Error:", err)
 
+print("Output: ", out.decode())
 
-""" fourcc = cv2.VideoWriter_fourcc(*'H264')
-out = cv2.VideoWriter('appsrc ! videoconvert ! x264enc tune=zerolatency noise-reduction=10000 bitrate=2048 speed-preset=superfast ! rtph264pay config-interval=1 pt=96 ! udpsink host=127.0.0.1 port=5000',fourcc,cv2.CAP_PROP_FPS, (800,600),True)
+if p.returncode == 0:
+    print("ffmpeg err: ", err.decode())
 
-def send_stream():
-    while webcam.cap.isOpened():
-        frame = webcam.generate_frames()
-        out.write(webcam.generate_frames()).tobytes()
-        print(out)
-
- """

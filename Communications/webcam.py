@@ -25,7 +25,7 @@ def generate_frames():
         result, image = cam.read()
         ret, buffer = cv2.imencode('.jpg', image)
         image = buffer.tobytes()
-        return image
+        yield image
         # yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + image + b'\r\n')
     
 out = generate_frames()
