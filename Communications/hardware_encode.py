@@ -2,7 +2,7 @@
 #
 # This code will encode live video into H.264 making use
 # of the Pi's Hardware Encoder (h264_v4l2m2m). 
-# force all streams down to 5Mb/s
+# 
 #
 # 
 
