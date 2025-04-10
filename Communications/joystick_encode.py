@@ -48,24 +48,42 @@ def encode():
         time.sleep(0.1)
 
 
-    axes = joystick.get_numaxes()
-    print("Number of Axes: ", axes)
+    '''
+    Bit Layout (32-bit Packet):
+    - 0-3: Axis 0 (Scaled 0-15)
+    - 4-7: Axis 1 (Scaled 0-15)
+    - 8-11: Axis 2 (Scaled 0-15)
+    - 12-15: Axis 3 (Scaled 0-15)
+    - 16-27: 12 Buttons
+    - 28-32: unused 
+    '''
+    
 
 
-    buttons = joystick.get_numbuttons()
-    print("Number of Buttons: ", buttons)
+    axes = min(joystick.get_numaxes(),4)
+    #print("Number of Axes: ", axes)
+
+
+    buttons = min(joystick.get_numbuttons(),12)
+    #print("Number of Buttons: ", buttons)
 
 
     while True:
+        packet = 0
+        pygame.event.pump()
+
         for i in range(axes):
             axis = joystick.get_axis(i)
-            print("Axis ", i, ": ", axis)
+            scaled_axis_value = int((axis + 1.0) * 7.5) & 15
+            packet |= (scaled_axis_value << (i * 4))
 
-
-        """ for i in range(buttons):
+        for i in range(buttons):
             button = joystick.get_button(i)
-            print("Button ", i, ": ", button ) """ 
+            if button:
+                packet |= (1<< (i + 16))
         
-        time.sleep(0.5)
+        print(f"{packet:032b}")
+        time.sleep(0.01)
+
 start_up()
 encode()
