@@ -85,5 +85,3 @@ def encode():
         print(f"{packet:032b}")
         time.sleep(0.01)
 
-start_up()
-encode()
