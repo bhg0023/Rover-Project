@@ -11,6 +11,7 @@
 import webcam
 import subprocess
 import time
+import os
 
 fifo_path = '/tmp/video_stream.h264'
 
@@ -19,7 +20,7 @@ fifo_path = '/tmp/video_stream.h264'
 
 
 
-def encode():
+def init():
     command = ['ffmpeg',
             '-y',
             '-an',
@@ -32,17 +33,16 @@ def encode():
                 '-f', 'h264',
                 fifo_path
     ]
-
     p = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
+    return p
+def encode(p):
     try:
         # Process each frame and send it to FFmpeg
         count = 0
         for frame in webcam.generate_frames():
-            print("Frame read!")
             try:
                 p.stdin.write(frame)  # Write each frame's byte data to ffmpeg's stdin
-                print("Sent a frame!")
+                print(f"Wrote frame count {count}")
                 count += 1
                 time.sleep(1/24)
             except BrokenPipeError:

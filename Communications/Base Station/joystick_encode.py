@@ -8,17 +8,13 @@ import pygame
 import time
 
 
-def start_up():
+def init():
     pygame.init()
     pygame.joystick.init()
 
     joystick_count = pygame.joystick.get_count()
-    return joystick_count
 
-
-def encode():
-    if start_up == 0:
-        print("No Joysticks Detected!")
+    if joystick_count == 0:
         exit()
     
     joystick = pygame.joystick.Joystick(0)
@@ -27,8 +23,12 @@ def encode():
     name = joystick.get_name()
     print("Controller name: ", name)
 
-    buttons = joystick.get_numbuttons()
+    axes = min(joystick.get_numaxes(),4)
+    #print("Number of Axes: ", axes)
 
+
+    buttons = min(joystick.get_numbuttons(),12)
+    #print("Number of Buttons: ", buttons)
 
     print("\nPress any button on your controller to start monitoring values...")
 
@@ -46,6 +46,10 @@ def encode():
                 
         # Short delay to prevent high CPU usage
         time.sleep(0.1)
+    
+    return joystick, axes, buttons
+
+def encode(joystick, axes, buttons):
 
 
     '''
@@ -59,13 +63,6 @@ def encode():
     '''
     
 
-
-    axes = min(joystick.get_numaxes(),4)
-    #print("Number of Axes: ", axes)
-
-
-    buttons = min(joystick.get_numbuttons(),12)
-    #print("Number of Buttons: ", buttons)
 
 
     while True:
@@ -82,6 +79,6 @@ def encode():
             if button:
                 packet |= (1<< (i + 16))
         
-        print(f"{packet:032b}")
+        return f"{packet:032b}"
         time.sleep(0.01)
 
