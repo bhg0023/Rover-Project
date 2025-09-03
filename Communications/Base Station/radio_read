@@ -1,0 +1,35 @@
+# radio_read_u32.py
+# Read-only 32-bit joystick receiver (bit-packed) for  Pi.
+# Assumes you nRF24 wrapper exposes `radio_rover` and is already initialized.
+#
+# Bit layout assumed (little-endian on the wire, then parsed as a uint32 LE):   Can change if its not little-edian 
+# [31 30 29 28] [27........20] [19........10] [9..........0]
+#    unused(4)      buttons(8)        Y(10)            X(10)
+#
+
+from NRF24 import radio_rover   # import the already-configured rover radio object (SPI, channel, addresses set elsewhere)
+import struct                   # struct helps convert 4 raw bytes into a Python int using a specific endianness/size
+
+print("[Radio.Read] u32 bitpack mode")  # startup banner so you know which reader is running
+
+while True:                                  # run forever: keep listening for incoming packets
+    p = radio_rover.read(0.25)               # poll the radio for up to 0.25 s; returns bytes (payload) or None if nothing arrived
+    if p and len(p) == 4:                    # only handle packets that exist AND are exactly 4 bytes (your 32-bit frame)
+        # Convert the 4 bytes to an unsigned 32-bit integer, little-endian.
+        #   "<I"  → little-endian ("<"), unsigned 32-bit int ("I")
+        v = struct.unpack("<I", p)[0]
+
+        # (Alternative if you prefer, identical result)
+        # v = int.from_bytes(p, "little")
+
+        # Extract X: the lowest 10 bits (bits 0..9). 0x3FF = binary 1111111111.
+        x10 =  v        & 0x3FF
+
+        # Extract Y: bits 10..19. Shift right by 10, then mask off the lowest 10 bits.
+        y10 = (v >> 10) & 0x3FF
+
+        # Extract buttons: bits 20..27. Shift right by 20, then keep the lowest 8 bits (0xFF).
+        buttons8 = (v >> 20) & 0xFF
+
+        # Print parsed values. Buttons are shown as an 8-bit binary string, zero-padded, e.g., "00100100".
+        print(x10, y10, f"{buttons8:08b}")
