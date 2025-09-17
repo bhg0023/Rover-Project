@@ -15,8 +15,8 @@ import os
 
 fifo_path = '/tmp/video_stream.h264'
 
-""" if not os.path.exists(fifo_path):
-    os.mkfifo(fifo_path) """
+if not os.path.exists(fifo_path):
+    os.mkfifo(fifo_path)
 
 
 
@@ -24,11 +24,15 @@ def init():
     command = ['ffmpeg',
             '-y',
             '-an',
-            '-framerate', '24',
+            '-framerate', '5',
                 '-f', 'image2pipe',
                 '-i', 'pipe:0',
                 '-vf', 'format=yuv420p',
                 '-c:v','h264_v4l2m2m', 
+                '-b:v', '350k',
+                '-maxrate', '350k',
+                '-bufsize', '700k',
+                '-tune', 'zerolatency',
                 '-max_muxing_queue_size', '1024',
                 '-f', 'h264',
                 fifo_path
@@ -42,8 +46,8 @@ def encode(p):
         for frame in webcam.generate_frames():
             try:
                 p.stdin.write(frame)  # Write each frame's byte data to ffmpeg's stdin
-                print(f"Wrote frame count {count}")
-                count += 1
+                # print(f"Wrote frame count {count}")
+                # count += 1
                 time.sleep(1/24)
             except BrokenPipeError:
                 print("BrokenPipeError: FFmpeg process may have terminated early.")

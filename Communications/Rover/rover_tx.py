@@ -8,6 +8,7 @@ def init():
     address = b"00000"
     result = radio.begin()
     radio.powerUp()
+    radio.setPayloadSize(32)
     if not result:
         print("Radio not initilized at all!")
     radio.openWritingPipe(address)

@@ -24,7 +24,7 @@ def init():
     return radio
 
 def send(radio, message):
-    # radio.stopListening()           
+    radio.stopListening()           
     result = radio.write(message) #Transmit over TX and store result
     # If result == 1, the message was transmited. 
     if not result:
