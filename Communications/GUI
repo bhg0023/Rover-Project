@@ -10,7 +10,7 @@ import time
 import math
 
 # ========== CONFIG ==========
-SERIAL_PORT = "COM3"   # ⚡ Change to match your system
+SERIAL_PORT = "COM3"   # Change to match our system
 BAUDRATE = 115200
 
 # Serial init
@@ -36,10 +36,10 @@ app.geometry("1600x900")
 frame_left = ctk.CTkFrame(app, width=350, corner_radius=15)
 frame_left.pack(side="left", fill="y", padx=10, pady=10)
 
-label_title = ctk.CTkLabel(frame_left, text="🎮 Rover Controls", font=("Arial", 20, "bold"))
+label_title = ctk.CTkLabel(frame_left, text=" Rover Controls", font=("Arial", 20, "bold"))
 label_title.pack(pady=10)
 
-telemetry_label = ctk.CTkLabel(frame_left, text="📡 Telemetry Dashboard", font=("Arial", 16, "bold"))
+telemetry_label = ctk.CTkLabel(frame_left, text=" Telemetry Dashboard", font=("Arial", 16, "bold"))
 telemetry_label.pack(pady=10)
 
 # ---- Speed Gauge (mph) ----
@@ -104,13 +104,13 @@ gps_label.pack(pady=15)
 frame_right = ctk.CTkFrame(app, corner_radius=15)
 frame_right.pack(side="right", expand=True, fill="both", padx=10, pady=10)
 
-video_label = ctk.CTkLabel(frame_right, text="🎥 Video Feed", font=("Arial", 20, "bold"))
+video_label = ctk.CTkLabel(frame_right, text=" Video Feed", font=("Arial", 20, "bold"))
 video_label.pack(pady=10)
 
 video_canvas = tk.Label(frame_right, bg="black")
 video_canvas.pack(pady=5, expand=True, fill="both")
 
-map_label = ctk.CTkLabel(frame_right, text="🗺 Rover Map", font=("Arial", 20, "bold"))
+map_label = ctk.CTkLabel(frame_right, text=" Rover Map", font=("Arial", 20, "bold"))
 map_label.pack(pady=10)
 
 map_widget = TkinterMapView(frame_right, width=800, height=300, corner_radius=15)
