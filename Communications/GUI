@@ -1,173 +1,190 @@
-import tkinter as tk
-from tkinter import ttk
-import threading
-import time
-import random
+import customtkinter as ctk
 import cv2
+import threading
+import tkinter as tk
 from PIL import Image, ImageTk
 import pygame
+import serial
+from tkintermapview import TkinterMapView
+import time
+import math
 
+# ========== CONFIG ==========
+SERIAL_PORT = "COM3"   # ⚡ Change to match your system
+BAUDRATE = 115200
 
-# Dummy comms (replace this DummyComms with the with the radio_rover / radio_base comms.)
+# Serial init
+ser = serial.Serial(SERIAL_PORT, BAUDRATE, timeout=1)
 
-class DummyComms:
-    def __init__(self, callback):
-        self.callback = callback
-        threading.Thread(target=self.fake_receive, daemon=True).start()
+# Joystick init
+pygame.init()
+if pygame.joystick.get_count() > 0:
+    joystick = pygame.joystick.Joystick(0)
+    joystick.init()
+else:
+    joystick = None
 
-    def send(self, msg):
-        print("SENT:", msg)
+# GUI setup
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
 
-    def fake_receive(self):
-        while True:
-            # Simulate telemetry messages
-            lat = 30 + random.random()
-            lon = -97 + random.random()
-            speed = random.randint(0, 15)  # km/h
-            battery = random.randint(20, 100)  # %
-            msg = f"TLM,{lat:.6f},{lon:.6f},{speed},{battery}"
-            self.callback(msg)
-            time.sleep(5)
+app = ctk.CTk()
+app.title("Rover Base Station")
+app.geometry("1600x900")
 
+# ========= LEFT FRAME (Controls + Telemetry) =========
+frame_left = ctk.CTkFrame(app, width=350, corner_radius=15)
+frame_left.pack(side="left", fill="y", padx=10, pady=10)
 
-# GUI Application
+label_title = ctk.CTkLabel(frame_left, text="🎮 Rover Controls", font=("Arial", 20, "bold"))
+label_title.pack(pady=10)
 
-class BaseStationGUI:
-    def __init__(self, root):
-        self.root = root
-        root.title("Rover Base Station")
-        root.geometry("950x650")
+telemetry_label = ctk.CTkLabel(frame_left, text="📡 Telemetry Dashboard", font=("Arial", 16, "bold"))
+telemetry_label.pack(pady=10)
 
-        # Layout: Left (controls & telemetry) | Right (video)
-        self.left_frame = tk.Frame(root)
-        self.left_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
+# ---- Speed Gauge (mph) ----
+speed_canvas = tk.Canvas(frame_left, width=200, height=200, bg="black", highlightthickness=0)
+speed_canvas.pack(pady=10)
 
-        self.right_frame = tk.Frame(root, bg="black")
-        self.right_frame.pack(side=tk.RIGHT, expand=True, fill=tk.BOTH)
+# Gauge arc
+speed_canvas.create_arc(20, 20, 180, 180, start=30, extent=120, style="arc", outline="white", width=3)
 
-        #  GPS Input 
-        tk.Label(self.left_frame, text="Latitude (Cmd):").pack(pady=3)
-        self.lat_entry = tk.Entry(self.left_frame)
-        self.lat_entry.pack(pady=3)
+# Tick marks and labels
+for i, mph in enumerate([0, 20, 40, 60]):
+    angle = 30 + (mph / 60) * 120
+    rad = math.radians(angle)
+    x = 100 + 70 * math.cos(rad)
+    y = 100 - 70 * math.sin(rad)
+    speed_canvas.create_text(x, y, text=str(mph), fill="white", font=("Consolas", 10, "bold"))
 
-        tk.Label(self.left_frame, text="Longitude (Cmd):").pack(pady=3)
-        self.lon_entry = tk.Entry(self.left_frame)
-        self.lon_entry.pack(pady=3)
+# Speed text
+speed_text = speed_canvas.create_text(100, 150, text="0 mph", fill="white", font=("Consolas", 14, "bold"))
 
-        send_btn = tk.Button(self.left_frame, text="Send GPS", command=self.send_gps)
-        send_btn.pack(pady=5)
+# Needle line
+speed_needle = speed_canvas.create_line(100, 100, 100, 40, fill="red", width=3)
 
-        #  Live Telemetry 
-        tk.Label(self.left_frame, text="Live Telemetry", font=("Arial", 12, "bold")).pack(pady=5)
-        self.lat_label = tk.Label(self.left_frame, text="Latitude: ---")
-        self.lat_label.pack(pady=2)
-        self.lon_label = tk.Label(self.left_frame, text="Longitude: ---")
-        self.lon_label.pack(pady=2)
-        self.speed_label = tk.Label(self.left_frame, text="Speed: --- km/h")
-        self.speed_label.pack(pady=2)
-        self.batt_label = tk.Label(self.left_frame, text="Battery: --- %")
-        self.batt_label.pack(pady=2)
+def update_speed_gauge(speed_mph):
+    speed_mph = max(0, min(60, speed_mph))  # clamp 0–60 mph
+    angle = 30 + (speed_mph / 60) * 120    # map mph to gauge arc
+    rad = math.radians(angle)
+    x = 100 + 60 * math.cos(rad)
+    y = 100 - 60 * math.sin(rad)
+    speed_canvas.coords(speed_needle, 100, 100, x, y)
+    speed_canvas.itemconfig(speed_text, text=f"{speed_mph:.0f} mph")
 
-        # Telemetry Log 
-        tk.Label(self.left_frame, text="Telemetry Log:").pack(pady=3)
-        self.log = tk.Text(self.left_frame, height=12, width=40)
-        self.log.pack(pady=3)
+# ---- Battery Indicator ----
+battery_canvas = tk.Canvas(frame_left, width=80, height=200, bg="black", highlightthickness=0)
+battery_canvas.pack(pady=10)
 
-        # Joystick Display 
-        tk.Label(self.left_frame, text="Joystick:").pack(pady=3)
-        self.joystick_label = tk.Label(self.left_frame, text="Not connected")
-        self.joystick_label.pack(pady=3)
+# Outline
+battery_canvas.create_rectangle(20, 20, 60, 180, outline="white", width=3)
+battery_level = battery_canvas.create_rectangle(22, 178, 58, 178, fill="green", width=0)
+battery_text = battery_canvas.create_text(40, 190, text="--%", fill="white", font=("Consolas", 12, "bold"))
 
-        # Video Display 
-        self.video_label = tk.Label(self.right_frame, bg="black")
-        self.video_label.pack(expand=True, fill=tk.BOTH)
+def update_battery(level):
+    level = max(0, min(100, level))  # clamp 0-100
+    fill_height = int((level / 100) * 158)
+    y1 = 178 - fill_height
+    battery_canvas.coords(battery_level, 22, y1, 58, 178)
 
-        # Comms setup
-        self.comms = DummyComms(self.receive_msg)
+    # Color zones
+    color = "green"
+    if level < 50:
+        color = "yellow"
+    if level < 20:
+        color = "red"
+    battery_canvas.itemconfig(battery_level, fill=color)
+    battery_canvas.itemconfig(battery_text, text=f"{level:.0f}%")
 
-        # Start joystick + video in threads
-        threading.Thread(target=self.joystick_loop, daemon=True).start()
-        threading.Thread(target=self.video_loop, daemon=True).start()
+# GPS Label
+gps_label = ctk.CTkLabel(frame_left, text="GPS: (--, --)", font=("Consolas", 14))
+gps_label.pack(pady=15)
 
-  
-    # GPS Handling
+# ========= RIGHT FRAME (Video + Map) =========
+frame_right = ctk.CTkFrame(app, corner_radius=15)
+frame_right.pack(side="right", expand=True, fill="both", padx=10, pady=10)
 
-    def send_gps(self):
-        lat = self.lat_entry.get().strip()
-        lon = self.lon_entry.get().strip()
-        if lat and lon:
-            msg = f"GPS_CMD,{lat},{lon}"
-            self.comms.send(msg)
-            self.log.insert(tk.END, f"Sent: {msg}\n")
-            self.log.see(tk.END)
+video_label = ctk.CTkLabel(frame_right, text="🎥 Video Feed", font=("Arial", 20, "bold"))
+video_label.pack(pady=10)
 
+video_canvas = tk.Label(frame_right, bg="black")
+video_canvas.pack(pady=5, expand=True, fill="both")
 
-    # Telemetry Handling
+map_label = ctk.CTkLabel(frame_right, text="🗺 Rover Map", font=("Arial", 20, "bold"))
+map_label.pack(pady=10)
 
-    def receive_msg(self, msg):
-        self.root.after(0, self._process_msg, msg)
+map_widget = TkinterMapView(frame_right, width=800, height=300, corner_radius=15)
+map_widget.pack(pady=10, fill="x")
 
-    def _process_msg(self, msg):
-        self.log.insert(tk.END, f"Recv: {msg}\n")
-        self.log.see(tk.END)
+# Default position UNT Denton
+map_widget.set_position(33.2140, -97.1331)
+map_widget.set_zoom(15)
+rover_marker = map_widget.set_marker(33.2140, -97.1331, text="Rover")
 
-        # Parse telemetry: TLM,lat,lon,speed,battery
-        if msg.startswith("TLM"):
-            try:
-                _, lat, lon, speed, battery = msg.split(",")
-                self.lat_label.config(text=f"Latitude: {lat}")
-                self.lon_label.config(text=f"Longitude: {lon}")
-                self.speed_label.config(text=f"Speed: {speed} km/h")
-                self.batt_label.config(text=f"Battery: {battery} %")
-            except ValueError:
-                pass  # ignore bad format
+# ========= FUNCTIONS =========
+def smooth_update(lat, lon, steps=15, delay=0.05):
+    """Smoothly move rover marker on the map"""
+    global rover_marker
+    cur_lat, cur_lon = rover_marker.position
+    d_lat = (lat - cur_lat) / steps
+    d_lon = (lon - cur_lon) / steps
+    for _ in range(steps):
+        cur_lat += d_lat
+        cur_lon += d_lon
+        rover_marker.set_position(cur_lat, cur_lon)
+        time.sleep(delay)
 
- 
-    # Joystick Handling
+def read_telemetry():
+    """Read telemetry from NRF24 serial"""
+    while True:
+        try:
+            line = ser.readline().decode().strip()
+            if line:
+                # Example format: speed:25,batt:80,lat:33.2145,lon:-97.1330
+                parts = dict(item.split(":") for item in line.split(","))
+                speed = float(parts.get("speed", "0"))
+                battery = float(parts.get("batt", "0"))
+                lat = float(parts.get("lat", "0"))
+                lon = float(parts.get("lon", "0"))
 
-    def joystick_loop(self):
-        pygame.init()
-        pygame.joystick.init()
+                # Update GUI
+                update_speed_gauge(speed)
+                update_battery(battery)
+                gps_label.configure(text=f"GPS: ({lat:.5f}, {lon:.5f})")
 
-        if pygame.joystick.get_count() == 0:
-            self.root.after(0, self._update_joystick, "No joystick found")
-            return
+                # Update map smoothly
+                threading.Thread(target=smooth_update, args=(lat, lon), daemon=True).start()
+        except Exception:
+            pass
 
-        js = pygame.joystick.Joystick(0)
-        js.init()
-        self.root.after(0, self._update_joystick, f"Connected: {js.get_name()}")
+def video_loop():
+    """Capture and display video"""
+    cap = cv2.VideoCapture(0)  # Change if using IP camera
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            continue
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        img = Image.fromarray(frame).resize((900, 600))
+        imgtk = ImageTk.PhotoImage(image=img)
+        video_canvas.imgtk = imgtk
+        video_canvas.configure(image=imgtk)
 
-        while True:
-            pygame.event.pump()
-            x_axis = js.get_axis(0)  # left/right
-            y_axis = js.get_axis(1)  # forward/back
-            msg = f"JOY,{x_axis:.2f},{y_axis:.2f}"
-            self.comms.send(msg)
-            self.root.after(0, self._update_joystick, msg)
-            time.sleep(0.1)
+def joystick_loop():
+    """Poll joystick and show values"""
+    while True:
+        pygame.event.pump()
+        if joystick:
+            x = joystick.get_axis(0)
+            y = joystick.get_axis(1)
+            # (Here you could send commands to the rover)
+            print(f"Joystick -> X:{x:.2f} Y:{y:.2f}")
+        time.sleep(0.5)
 
-    def _update_joystick(self, text):
-        self.joystick_label.config(text=text)
+# ========= THREADS =========
+threading.Thread(target=read_telemetry, daemon=True).start()
+threading.Thread(target=video_loop, daemon=True).start()
+threading.Thread(target=joystick_loop, daemon=True).start()
 
-
-    # Video Handling
-  
-    def video_loop(self):
-        cap = cv2.VideoCapture(0)  # change to IP stream later
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                continue
-            frame = cv2.resize(frame, (640, 480))
-            cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            img = Image.fromarray(cv2image)
-            imgtk = ImageTk.PhotoImage(image=img)
-            self.video_label.imgtk = imgtk
-            self.video_label.config(image=imgtk)
-
-# Run App
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = BaseStationGUI(root)
-    root.mainloop()
+# ========= RUN APP =========
+app.mainloop()
