@@ -4,3 +4,5 @@ from pymavlink import mavutil
 # Using UART with BAUD rate: 115200
 connection = mavutil.mavlink_connection('/dev/ttyTHS1', 115200)
 connection.wait_heartbeat()
+
+# Send PWM command
