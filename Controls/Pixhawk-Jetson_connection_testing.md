@@ -1,3 +1,4 @@
+# Connection Testing
 ## Installing MAVProxy
 I used this [video](https://youtu.be/nIuoCYauW3s?si=B8UhA8yvrDOfCrkB) to get started with the connection between Jetson and Pixhawk. I extracted the code from the video and placed it here for convenience.
 Type the following commands on the Jetson command line interface.
@@ -12,3 +13,6 @@ On the Jetson command line interface enter the following command
 sudo mavproxy.py --master=/dev/ttyTHS1
 ```
 This should open mavproxy and establish a connection to the Pixhawk. You should see commands being sent to the Jetson on the command line interface.
+# MAVLink - Sending commands
+## Setting up pymavlink
+- 
