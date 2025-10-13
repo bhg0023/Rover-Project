@@ -15,4 +15,5 @@ sudo mavproxy.py --master=/dev/ttyTHS1
 This should open mavproxy and establish a connection to the Pixhawk. You should see commands being sent to the Jetson on the command line interface.
 # MAVLink - Sending commands
 ## Setting up pymavlink
-- 
+[Installing pymavlink](https://pypi.org/project/pymavlink/)
+[Sending Messages Format](https://mavlink.io/en/mavgen_python/#sending)
