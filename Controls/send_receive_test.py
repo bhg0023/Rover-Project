@@ -32,7 +32,6 @@ def set_pwm(direction, pwm):
             pwm_send = -(pwm/100)
         case 0:  # neutral
             pwm_send = 0
-            print("hello 0")
         case 1:  # forward
             pwm_send = pwm/100
 
