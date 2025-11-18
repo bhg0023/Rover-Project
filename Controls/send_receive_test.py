@@ -19,15 +19,6 @@ message = connection.mav.command_long_encode(
 
 connection.mav.send(message)
 
-# connection.mav.command_long_send(
-#     connection.target_system,
-#     connection.target_component,
-#     0, 
-#     1, 
-#     1600,
-#     0, 0, 0, 0, 0, 0
-# )
-
 user_input = float(input("enter something"))
 while(user_input != -1.0):
     user_input = float(input("PWM (micro sec):"))
