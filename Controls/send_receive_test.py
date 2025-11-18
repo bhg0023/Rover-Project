@@ -1,4 +1,5 @@
 from pymavlink import mavutil
+import time
 
 # Sets up communication interface between the PixHawk and the Jetson
 # Using UART with BAUD rate: 57600
@@ -6,6 +7,37 @@ connection = mavutil.mavlink_connection('/dev/ttyTHS1', 57600)
 connection.wait_heartbeat()
 print("Heartbeat from system (system %u component %u)" % (connection.target_system, connection.target_component))
 
-# Reading LiPo battery voltage
-msg = connection.recv_match(type='SYS_STATUS', blocking=True)
-print("Battery Voltage: " + str(msg.voltage_battery) +  ", " + "Battery Remaining: " + str(msg.battery_remaining) + "%")
+message = connection.mav.command_long_encode(
+    connection.target_system,
+    connection.target_component,
+    mavutil.mavlink.MAV_CMD_DO_SET_SERVO, 
+    0, 
+    1, 
+    1000,
+    0, 0, 0, 0, 0
+)
+
+connection.mav.send(message)
+
+# connection.mav.command_long_send(
+#     connection.target_system,
+#     connection.target_component,
+#     0, 
+#     1, 
+#     1600,
+#     0, 0, 0, 0, 0, 0
+# )
+
+user_input = float(input("enter something"))
+while(user_input != -1.0):
+    user_input = float(input("PWM (micro sec):"))
+    message = connection.mav.command_long_encode(
+        connection.target_system,
+        connection.target_component,
+        mavutil.mavlink.MAV_CMD_DO_SET_SERVO, 
+        0, 
+        1, 
+        user_input,
+        0, 0, 0, 0, 0
+    )
+    connection.mav.send(message)
